@@ -1,0 +1,18 @@
+@startuml
+class "Flask API" {
++home()
++health()
++analyze()
++match()
++history()
+}
+class "ML Model Service" {
++train()
++predict(text)
+}
+class "SQLite Database" {
++scans
+}
+"Flask API" --> "ML Model Service"
+"Flask API" --> "SQLite Database"
+@enduml

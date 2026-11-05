@@ -1,0 +1,14 @@
+@startuml
+left to right direction
+actor "Job Seeker" as U
+rectangle JobGuardAI {
+usecase "Analyse Job Advert" as A
+usecase "View Risk Result" as B
+usecase "Compare CV to Job" as C
+usecase "View Scan History" as D
+}
+U --> A
+U --> C
+U --> D
+A .> B : <<include>>
+@enduml

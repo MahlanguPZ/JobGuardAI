@@ -1,0 +1,13 @@
+@startuml
+node "Local Computer" {
+ component "Browser UI" as UI
+ component "Flask Server :5000" as API
+ component "scikit-learn ML" as ML
+ database "SQLite" as DB
+ artifact "jobs.csv" as DATA
+}
+UI --> API : HTTP
+API --> ML
+API --> DB
+DATA --> ML : training
+@enduml

@@ -1,0 +1,19 @@
+@startuml
+actor "Job Seeker" as User
+participant "Browser" as UI
+participant "Flask API" as API
+participant "ML Model" as ML
+database "SQLite" as DB
+User -> UI : Enter advert
+UI -> API : POST /api/analyze
+API -> API : Validate input
+alt invalid
+API --> UI : 400 error
+else valid
+API -> ML : predict(text)
+ML --> API : label, score
+API -> DB : INSERT scan
+API --> UI : JSON result
+UI --> User : Show result
+end
+@enduml
