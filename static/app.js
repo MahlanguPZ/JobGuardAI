@@ -33,7 +33,7 @@ $('jobSearchForm').onsubmit=async e=>{
  }catch(err){box.textContent=err.message;}
 };
 
-\n$('locationForm').onsubmit=async e=>{
+$('locationForm').onsubmit=async e=>{
  e.preventDefault();$('locationResult').textContent='Checking demonstration records...';
  try{
   const r=await send('/api/location-check',{address:$('interviewAddress').value});
