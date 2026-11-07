@@ -23,6 +23,13 @@ def analyze():
  d=request.get_json(silent=True) or {};title=str(d.get('title','')).strip();desc=str(d.get('description','')).strip()
  if not 1<=len(title)<=120 or not 30<=len(desc)<=8000:return jsonify(error='Title: 1-120 characters. Description: 30-8000 characters.'),400
  result=predict(title+' '+desc)
+ location=str(d.get('location','')).strip()[:250]
+ # Optional user-provided caution locations. Treat as unverified, never publish as fact.
+ entries=[x.strip().casefold() for x in os.environ.get('CAUTION_LOCATIONS','').split(';') if len(x.strip())>=8]
+ if location and any(entry in location.casefold() for entry in entries):
+  result['location_notice']='This location matches a privately supplied caution entry. This is NOT proof of wrongdoing. Independently verify the address and arrange safe meetings.'
+ else:
+  result['location_notice']='Location has not been independently verified. Confirm the employer and interview address before travelling.'
  with db() as c:c.execute('INSERT INTO scans(created_at,title,label,risk_percent) VALUES (?,?,?,?)',(datetime.now(timezone.utc).isoformat(),title,result['label'],result['risk_percent']))
  return jsonify(result)
 @app.post('/api/match')
@@ -62,8 +69,6 @@ def jobs():
 
 @app.post('/api/match-file')
 def match_file():
- from pypdf import PdfReader
- from docx import Document
  uploaded=request.files.get('cv')
  job=request.form.get('job','').strip()
  if not uploaded or not uploaded.filename:return jsonify(error='Please select a PDF or DOCX CV.'),400
@@ -74,6 +79,8 @@ def match_file():
  data=uploaded.read()
  if not data or len(data)>5*1024*1024:return jsonify(error='CV must be between 1 byte and 5 MB.'),400
  try:
+  from pypdf import PdfReader
+  from docx import Document
   if ext=='.pdf':
    reader=PdfReader(io.BytesIO(data))
    if len(reader.pages)>30:return jsonify(error='CV exceeds 30 pages.'),400

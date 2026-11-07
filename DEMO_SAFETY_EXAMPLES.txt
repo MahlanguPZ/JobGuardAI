@@ -1,0 +1,19 @@
+DEMO 1 — HIGH CONCERN (FICTIONAL, SAFE TO PRESENT)
+Title: Administrative assistant
+Location: Not provided
+Description:
+URGENT HIRING! Guaranteed employment, no interview needed.
+Pay a registration fee of R350 immediately to secure your position.
+WhatsApp your banking details and ID copy before the interview.
+Come alone to an isolated location and do not tell anyone.
+
+DEMO 2 — LOWER WARNING SIGNALS (NOT VERIFIED LEGITIMATE)
+Title: Junior software developer
+Description:
+A technology company seeks a junior software developer with Python,
+Flask, SQL, Git, HTML and JavaScript. Candidates submit a CV using
+the official company careers portal. Interview details are confirmed
+through the employer's published contact channels.
+
+IMPORTANT: These are invented demonstration texts. Never label a real
+person, employer, or address fraudulent without independent evidence.
