@@ -1,4 +1,4 @@
-import os,sqlite3,io,json
+import os,sqlite3,io,json,re,unicodedata
 from urllib.request import urlopen, Request
 from urllib.parse import urlencode
 from urllib.error import HTTPError, URLError
@@ -14,6 +14,57 @@ DB=Path(os.environ.get('JOBGUARD_DB',str(Path(__file__).parent/'jobguard.db')))
 def db():
  c=sqlite3.connect(DB);c.row_factory=sqlite3.Row;return c
 with db() as c:c.execute('CREATE TABLE IF NOT EXISTS scans(id INTEGER PRIMARY KEY, created_at TEXT, title TEXT, label TEXT, risk_percent REAL)')
+# Presentation-only address examples. These are NOT verified incident reports.
+DEMO_LOCATIONS = [
+ ('ILPA House, CNR Commissioner & Von Weiligh Str', 'Johannesburg', 'Gauteng'),
+ ('Manchester House, CNR Von Weilligh & Pritchard Str', 'Johannesburg', 'Gauteng'),
+ ('The great experience, Curthberths of Chambers Building', 'Unspecified', 'Unspecified'),
+]
+def normalize_address(value):
+ value=unicodedata.normalize('NFKD',value).encode('ascii','ignore').decode().lower()
+ value=re.sub(r'\\b(cnr|corner)\\b',' ',value)
+ value=re.sub(r'\\b(str|street)\\b',' ',value)
+ value=value.replace('weilligh','weiligh')
+ value=re.sub(r'[^a-z0-9]+',' ',value)
+ return ' '.join(value.split())
+with db() as c:
+ c.execute("""CREATE TABLE IF NOT EXISTS location_cautions(
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ address TEXT NOT NULL UNIQUE,
+ normalized_address TEXT NOT NULL,
+ city TEXT,
+ province TEXT,
+ verification_status TEXT NOT NULL DEFAULT 'demo_unverified',
+ source_reference TEXT NOT NULL DEFAULT 'User-supplied presentation example',
+ created_at TEXT NOT NULL
+ )""")
+ for address,city,province in DEMO_LOCATIONS:
+  c.execute("""INSERT OR IGNORE INTO location_cautions
+   (address,normalized_address,city,province,verification_status,source_reference,created_at)
+   VALUES (?,?,?,?,?,?,?)""",
+   (address,normalize_address(address),city,province,'demo_unverified',
+    'User-supplied presentation example',datetime.now(timezone.utc).isoformat()))
+
+@app.post('/api/location-check')
+def location_check():
+ payload=request.get_json(silent=True) or {}
+ address=payload.get('address','')
+ if not isinstance(address,str) or not 5<=len(address.strip())<=300:
+  return jsonify(error='Enter an interview address (5–300 characters).'),400
+ normalized=normalize_address(address)
+ with db() as c:
+  rows=c.execute('SELECT address,normalized_address,verification_status FROM location_cautions').fetchall()
+ matches=[dict(r) for r in rows if r['normalized_address']==normalized]
+ return jsonify(
+  matched=bool(matches),
+  status='DEMO RECORD MATCH — NOT VERIFIED' if matches else 'NO DEMO RECORD FOUND',
+  note=('The entered address matches a user-supplied demonstration record. '
+        'This is not evidence that the address, building or its occupants are unsafe.'
+        if matches else
+        'No match in the small demonstration database. This does not verify that a location is safe.'),
+  advice='Confirm the employer independently, verify the venue and share interview details with someone you trust.',
+  demo_only=True)
+
 @app.get('/')
 def home():return render_template('index.html')
 @app.get('/api/health')
@@ -23,13 +74,6 @@ def analyze():
  d=request.get_json(silent=True) or {};title=str(d.get('title','')).strip();desc=str(d.get('description','')).strip()
  if not 1<=len(title)<=120 or not 30<=len(desc)<=8000:return jsonify(error='Title: 1-120 characters. Description: 30-8000 characters.'),400
  result=predict(title+' '+desc)
- location=str(d.get('location','')).strip()[:250]
- # Optional user-provided caution locations. Treat as unverified, never publish as fact.
- entries=[x.strip().casefold() for x in os.environ.get('CAUTION_LOCATIONS','').split(';') if len(x.strip())>=8]
- if location and any(entry in location.casefold() for entry in entries):
-  result['location_notice']='This location matches a privately supplied caution entry. This is NOT proof of wrongdoing. Independently verify the address and arrange safe meetings.'
- else:
-  result['location_notice']='Location has not been independently verified. Confirm the employer and interview address before travelling.'
  with db() as c:c.execute('INSERT INTO scans(created_at,title,label,risk_percent) VALUES (?,?,?,?)',(datetime.now(timezone.utc).isoformat(),title,result['label'],result['risk_percent']))
  return jsonify(result)
 @app.post('/api/match')
@@ -69,6 +113,8 @@ def jobs():
 
 @app.post('/api/match-file')
 def match_file():
+ from pypdf import PdfReader
+ from docx import Document
  uploaded=request.files.get('cv')
  job=request.form.get('job','').strip()
  if not uploaded or not uploaded.filename:return jsonify(error='Please select a PDF or DOCX CV.'),400
@@ -79,8 +125,6 @@ def match_file():
  data=uploaded.read()
  if not data or len(data)>5*1024*1024:return jsonify(error='CV must be between 1 byte and 5 MB.'),400
  try:
-  from pypdf import PdfReader
-  from docx import Document
   if ext=='.pdf':
    reader=PdfReader(io.BytesIO(data))
    if len(reader.pages)>30:return jsonify(error='CV exceeds 30 pages.'),400

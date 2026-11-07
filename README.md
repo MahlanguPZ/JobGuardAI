@@ -40,11 +40,3 @@ The classifier is genuinely trained, but the 32 training examples are **illustra
 Privacy/security: local-only server, input length checks, safe HTML escaping, no credentials. No login or role-based access controls; do not deploy publicly. Avoid pasting private CV information in a demonstration. Delete `jobguard.db` to clear saved scan history.
 
 Assignment 5 also requires presentation slides, editable UML, accessible repository, testing evidence and an offline fallback. This ZIP is not a published repository.
-
-## Safety-focused v2 changes
-- Expanded transparent warning categories: fees, money, bank details, identity requests, urgency, guaranteed work, messaging-only contact, unrealistic income, secrecy and unsafe meetings.
-- **Hybrid decision:** high-severity warning rules cannot be overruled by a low ML score. The ML percentage remains separate and is NOT a real-world fraud probability.
-- Optional location field; no automatic address verification. `CAUTION_LOCATIONS` can contain semicolon-separated, privately supplied caution strings, e.g. `Example street 1;Example area 2`. A match displays a caution only, not an accusation or proof. Do not publish identifying watchlists.
-- Do not travel alone to an unverified interview; verify the employer through independently found official contact details.
-- No automatic model retraining from user submissions: malicious reports could poison training data. Curate, label, audit, then retrain offline.
-- Existing Adzuna and CV features are preserved.
