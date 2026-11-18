@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+model_store/
+*.joblib
+app_backup.py
+templates/index_backup.html
+setup_admin.py
